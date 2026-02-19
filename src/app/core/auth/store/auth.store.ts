@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
-import { signalStore, withState, withMethods, withComputed } from '@ngrx/signals';
-import { firstValueFrom } from 'rxjs';
+import { signalStore, withState, withMethods, withComputed, patchState } from '@ngrx/signals';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, tap, switchMap, catchError, of } from 'rxjs';
 
 import { AuthApi } from '../services/auth.api';
 import { TokenService } from '../services/token.service';
@@ -22,6 +23,8 @@ const initialState: AuthState = {
 };
 
 export const AuthStore = signalStore(
+  { providedIn: 'root' },
+  
   withState<AuthState>(initialState),
 
   withComputed((store) => ({
@@ -35,45 +38,65 @@ export const AuthStore = signalStore(
       api = inject(AuthApi),
       tokenService = inject(TokenService)
     ) => ({
-      async login(dto: LoginRequestDTO) {
-        store.patchState({ loading: true });
+      login: rxMethod<LoginRequestDTO>(
+        pipe(
+          tap(() => patchState(store, { loading: true })),
+          switchMap(dto => 
+            api.login(dto).pipe(
+              tap(res => {
+                if (res.mfaRequired) {
+                  patchState(store, {
+                    loading: false,
+                    mfaRequired: true
+                  });
+                  return;
+                }
 
-        const res = await firstValueFrom(api.login(dto));
+                tokenService.setTokens(res.accessToken, res.refreshToken);
 
-        if (res.mfaRequired) {
-          store.patchState({
-            loading: false,
-            mfaRequired: true
-          });
-          return;
-        }
+                patchState(store, {
+                  authenticated: true,
+                  loading: false,
+                  user: mockUser(dto.username),
+                  mfaRequired: false
+                });
+              }),
+              catchError(error => {
+                patchState(store, { loading: false });
+                console.error('Login failed:', error);
+                return of(null);
+              })
+            )
+          )
+        )
+      ),
 
-        tokenService.setTokens(res.accessToken, res.refreshToken);
-
-        store.patchState({
-          authenticated: true,
-          loading: false,
-          user: mockUser(dto.username),
-          mfaRequired: false
-        });
-      },
-
-      async completeMfa(code: string) {
-        store.patchState({ loading: true });
-
-        await firstValueFrom(api.verifyMfa(code));
-
-        store.patchState({
-          authenticated: true,
-          loading: false,
-          mfaRequired: false,
-          user: mockUser('admin')
-        });
-      },
+      completeMfa: rxMethod<string>(
+        pipe(
+          tap(() => patchState(store, { loading: true })),
+          switchMap(code =>
+            api.verifyMfa(code).pipe(
+              tap(() => {
+                patchState(store, {
+                  authenticated: true,
+                  loading: false,
+                  mfaRequired: false,
+                  user: mockUser('admin')
+                });
+              }),
+              catchError(error => {
+                patchState(store, { loading: false });
+                console.error('MFA verification failed:', error);
+                return of(null);
+              })
+            )
+          )
+        )
+      ),
 
       logout() {
         tokenService.clear();
-        store.setState(initialState);
+        patchState(store, initialState);
       }
     })
   )
