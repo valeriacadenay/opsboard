@@ -5,7 +5,7 @@ import { pipe, tap, switchMap, catchError, of } from 'rxjs';
 
 import { AuthApi } from '../services/auth.api';
 import { TokenService } from '../services/token.service';
-import { LoginRequestDTO } from '../models/auth.dto';
+import { LoginRequestDTO, LoginResponseDTO } from '../models/auth.dto';
 import { User } from '../models/user.model';
 
 export interface AuthState {
@@ -41,9 +41,9 @@ export const AuthStore = signalStore(
       login: rxMethod<LoginRequestDTO>(
         pipe(
           tap(() => patchState(store, { loading: true })),
-          switchMap(dto => 
+          switchMap((dto: LoginRequestDTO) =>
             api.login(dto).pipe(
-              tap(res => {
+              tap((res: LoginResponseDTO) => {
                 if (res.mfaRequired) {
                   patchState(store, {
                     loading: false,

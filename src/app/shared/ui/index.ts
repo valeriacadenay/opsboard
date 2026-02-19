@@ -6,7 +6,8 @@ export { BadgeComponent } from './atoms/atom2.component';
 export { CardHeaderComponent } from './molecules/molecule1.component';
 
 // Organisms - Componentes complejos
-export { DataTableComponent, type DataItem } from './organisms/organism1.component';
+export { DataTableComponent, type DataItem, type DataColumn } from './organisms/organism1.component';
+export { ErrorWidgetComponent } from './organisms/error-widget/error-widget.component';
 
 // Templates - Layouts de páginas
 export { FeatureContainerComponent } from './templates/template1.component';

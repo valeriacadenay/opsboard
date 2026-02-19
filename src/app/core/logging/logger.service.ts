@@ -3,6 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -25,6 +26,8 @@ export class LoggerService {
   private currentLevel: LogLevel = LogLevel.INFO;
   private logs: LogEntry[] = [];
   private maxLogs = 1000;
+  private readonly errorBuffer: LogEntry[] = [];
+  private readonly errorStream = new BehaviorSubject<LogEntry[]>([]);
 
   /**
    * Configura el nivel mínimo de logging
@@ -80,7 +83,7 @@ export class LoggerService {
       timestamp: new Date(),
       level,
       message,
-      data,
+      data: this.maskSensitive(data),
       correlationId
     };
 
@@ -93,8 +96,8 @@ export class LoggerService {
     // Console output
     this.outputToConsole(entry);
 
-    // TODO: Enviar a backend/servicio externo si es ERROR o FATAL
     if (level >= LogLevel.ERROR) {
+      this.pushError(entry);
       this.sendToBackend(entry);
     }
   }
@@ -130,8 +133,15 @@ export class LoggerService {
    * Envía logs críticos al backend
    */
   private sendToBackend(entry: LogEntry): void {
-    // TODO: Implementar envío a backend
-    console.log('📤 Sending log to backend:', entry);
+    // Simulación de envío asincrónico a endpoint externo
+    setTimeout(() => {
+      console.info('📤 (sim) sending to external endpoint /observability/ingest', {
+        message: entry.message,
+        level: entry.level,
+        timestamp: entry.timestamp,
+        correlationId: entry.correlationId
+      });
+    }, 0);
   }
 
   /**
@@ -149,5 +159,39 @@ export class LoggerService {
    */
   clearLogs(): void {
     this.logs = [];
+  }
+
+  /** Últimos errores normalizados (máx 20) */
+  get recentErrors$() {
+    return this.errorStream.asObservable();
+  }
+
+  getRecentErrors(): LogEntry[] {
+    return [...this.errorBuffer];
+  }
+
+  private pushError(entry: LogEntry): void {
+    this.errorBuffer.unshift(entry);
+    if (this.errorBuffer.length > 20) {
+      this.errorBuffer.pop();
+    }
+    this.errorStream.next([...this.errorBuffer]);
+  }
+
+  private maskSensitive(data: unknown): unknown {
+    if (!data || typeof data !== 'object') return data;
+    if (Array.isArray(data)) return data.map(item => this.maskSensitive(item));
+    const sensitiveKeys = ['password', 'token', 'authorization'];
+    const clone: Record<string, unknown> = {};
+    Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
+      if (sensitiveKeys.includes(key.toLowerCase())) {
+        clone[key] = '***redacted***';
+      } else if (typeof value === 'object' && value !== null) {
+        clone[key] = this.maskSensitive(value);
+      } else {
+        clone[key] = value;
+      }
+    });
+    return clone;
   }
 }

@@ -12,7 +12,7 @@ export class CorrelationIdService {
    * Genera un nuevo Correlation ID
    */
   generate(): string {
-    this.currentId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.currentId = crypto.randomUUID();
     return this.currentId;
   }
 

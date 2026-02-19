@@ -1,0 +1,6 @@
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; background: #0b1021; color: #e5e7eb; border-bottom: 1px solid #111827; }
+.brand { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.right { display: flex; align-items: center; gap: 0.75rem; }
+app-error-widget { transform: scale(0.9); transform-origin: right top; }
+.logout { background: transparent; border: 1px solid #e5e7eb; color: #e5e7eb; padding: 0.35rem 0.75rem; border-radius: 6px; cursor: pointer; }
+.logout:hover { background: #e5e7eb; color: #0b1021; }

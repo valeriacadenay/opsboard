@@ -4,14 +4,13 @@
  */
 
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { FeatureContainerComponent } from '../../shared/ui/templates/template1.component';
 import { IncidentsListComponent } from './components/incidents-list.component';
 
 @Component({
   selector: 'app-incidents',
   standalone: true,
-  imports: [RouterOutlet, FeatureContainerComponent, IncidentsListComponent],
+  imports: [FeatureContainerComponent, IncidentsListComponent],
   template: `
     <app-feature-container>
       <div header>

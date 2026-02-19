@@ -32,7 +32,7 @@ export class GlobalErrorHandler implements ErrorHandler {
       );
     }
 
-    // TODO: Mostrar notificación al usuario
-    console.error('💥 Global Error Handler:', error);
+    // surface a minimal console message without leaking sensitive data
+    console.error('Global error captured; see logger for details.', correlationId);
   }
 }
